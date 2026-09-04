@@ -1,6 +1,7 @@
 package com.pocketly.app.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,10 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +45,54 @@ import com.pocketly.app.ui.theme.TextSecondary
 
 @Composable
 fun ConnectedAccountsCard(modifier: Modifier = Modifier) {
+    var accounts by remember {
+        mutableStateOf(
+            listOf(
+                BankAccount(
+                    id = "1",
+                    name = "HDFC BANK",
+                    accountNumber = "2673",
+                    balance = "42,500",
+                    isPrimary = true,
+                    logoType = BankLogoType.HDFC
+                ),
+                BankAccount(
+                    id = "2",
+                    name = "SBI",
+                    accountNumber = "8958",
+                    balance = "45,500",
+                    isPrimary = false,
+                    logoType = BankLogoType.SBI
+                )
+            )
+        )
+    }
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var selectedAccountForDetail by remember { mutableStateOf<BankAccount?>(null) }
+
+    if (showAddDialog) {
+        AddAccountDialog(
+            onDismiss = { showAddDialog = false },
+            onAccountAdded = { newAccount ->
+                accounts = accounts + newAccount
+            }
+        )
+    }
+
+    selectedAccountForDetail?.let { account ->
+        AccountDetailDialog(
+            account = account,
+            onDismiss = { selectedAccountForDetail = null },
+            onSetPrimary = {
+                accounts = accounts.map {
+                    it.copy(isPrimary = it.id == account.id)
+                }
+                selectedAccountForDetail = null
+            }
+        )
+    }
+
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
@@ -66,12 +119,12 @@ fun ConnectedAccountsCard(modifier: Modifier = Modifier) {
                 // Minimalist circular plus button matching Figma reference
                 Box(
                     modifier = Modifier
-                        .size(22.dp)
+                        .size(26.dp)
                         .clip(CircleShape)
-                        .clickable { },
+                        .clickable { showAddDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.size(20.dp)) {
+                    Canvas(modifier = Modifier.size(22.dp)) {
                         drawCircle(
                             color = Color(0xFF334155),
                             style = Stroke(width = 1.6.dp.toPx())
@@ -81,7 +134,7 @@ fun ConnectedAccountsCard(modifier: Modifier = Modifier) {
                         imageVector = Icons.Filled.Add,
                         contentDescription = "Add account",
                         tint = Color(0xFF334155),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -93,75 +146,84 @@ fun ConnectedAccountsCard(modifier: Modifier = Modifier) {
                     .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // HDFC Bank Chip
-                GlassPill(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Row(
+                accounts.take(2).forEach { account ->
+                    GlassPill(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .weight(1f)
+                            .clickable { selectedAccountForDetail = account },
+                        shape = RoundedCornerShape(20.dp)
                     ) {
-                        HdfcLogo(modifier = Modifier.size(17.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "HDFC BANK- 2673",
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowDropDown,
-                            contentDescription = "Dropdown",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                }
-
-                // SBI Bank Chip (Matching Figma reference: blue circle logo + blue SBI + dark SBI - 8958)
-                GlassPill(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SbiLogo(modifier = Modifier.size(17.dp))
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "SBI",
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = SbiBlue
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = "SBI - 8958",
-                            fontFamily = PlusJakartaSansFontFamily,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowDropDown,
-                            contentDescription = "Dropdown",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(15.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            when (account.logoType) {
+                                BankLogoType.HDFC -> HdfcLogo(modifier = Modifier.size(17.dp))
+                                BankLogoType.SBI -> SbiLogo(modifier = Modifier.size(17.dp))
+                                BankLogoType.ICICI -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(17.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFB91C1C)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("i", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                BankLogoType.AXIS -> {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(17.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF9D174D)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("A", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            if (account.logoType == BankLogoType.SBI) {
+                                Text(
+                                    text = "SBI",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SbiBlue
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "SBI - ${account.accountNumber}",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Text(
+                                    text = "${account.name}- ${account.accountNumber}",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Filled.ArrowDropDown,
+                                contentDescription = "Dropdown",
+                                tint = TextSecondary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
                     }
                 }
             }
