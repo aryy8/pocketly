@@ -34,3 +34,4 @@ captures/
 .navigation/
 *.log
 prompt*.txt
+.kotlin/
