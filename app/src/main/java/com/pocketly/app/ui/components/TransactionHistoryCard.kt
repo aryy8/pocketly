@@ -53,7 +53,8 @@ data class TransactionItem(
 @Composable
 fun TransactionHistoryCard(
     modifier: Modifier = Modifier,
-    onSeeAllClick: () -> Unit = {}
+    onSeeAllClick: () -> Unit = {},
+    onTransactionClick: (TransactionItem) -> Unit = {}
 ) {
     val transactions = listOf(
         TransactionItem(
@@ -148,10 +149,13 @@ fun TransactionHistoryCard(
 
             // Transaction items list
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 transactions.forEach { item ->
-                    TransactionRow(item = item)
+                    TransactionRow(
+                        item = item,
+                        onClick = { onTransactionClick(item) }
+                    )
                 }
             }
         }
@@ -159,9 +163,16 @@ fun TransactionHistoryCard(
 }
 
 @Composable
-fun TransactionRow(item: TransactionItem) {
+fun TransactionRow(
+    item: TransactionItem,
+    onClick: () -> Unit = {}
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .padding(vertical = 4.dp, horizontal = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Circular Avatar / Logo
