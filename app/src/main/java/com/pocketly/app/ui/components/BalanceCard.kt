@@ -53,11 +53,11 @@ fun BalanceCard(
                 color = TextSecondary
             )
 
-            // Slanted geometric sans-serif balance numerals matching Figma reference
+            // Upright geometric sans-serif balance numerals
             Text(
                 text = "₹$balance",
                 fontFamily = PlusJakartaSansFontFamily,
-                fontStyle = FontStyle.Italic,
+                fontStyle = FontStyle.Normal,
                 fontSize = 35.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp,
