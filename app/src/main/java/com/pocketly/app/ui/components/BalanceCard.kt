@@ -23,12 +23,17 @@ import com.pocketly.app.ui.theme.SpentRed
 import com.pocketly.app.ui.theme.TextPrimary
 import com.pocketly.app.ui.theme.TextSecondary
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+
 @Composable
 fun BalanceCard(
     balance: String,
     spent: String,
     received: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSpentClick: () -> Unit = {},
+    onReceivedClick: () -> Unit = {}
 ) {
     GlassCard(
         modifier = modifier
@@ -70,8 +75,13 @@ fun BalanceCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Spent section
-                Column {
+                // Spent section - clickable
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onSpentClick() }
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
                     Text(
                         text = "Spent",
                         fontFamily = PlusJakartaSansFontFamily,
@@ -99,8 +109,13 @@ fun BalanceCard(
                     }
                 }
 
-                // Received section
-                Column {
+                // Received section - clickable
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onReceivedClick() }
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
                     Text(
                         text = "Received",
                         fontFamily = PlusJakartaSansFontFamily,

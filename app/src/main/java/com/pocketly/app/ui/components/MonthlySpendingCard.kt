@@ -52,6 +52,18 @@ import com.pocketly.app.ui.theme.TransportAccent
 import com.pocketly.app.ui.theme.TransportBg
 import com.pocketly.app.ui.theme.TrendRed
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
+import com.pocketly.app.ui.theme.ReceivedGreen
+
 data class SpendingCategoryItem(
     val icon: ImageVector,
     val label: String,
@@ -62,53 +74,263 @@ data class SpendingCategoryItem(
     val accentColor: Color
 )
 
+data class MonthlyData(
+    val monthName: String,
+    val totalSpent: String,
+    val trendPercent: String,
+    val isTrendDown: Boolean,
+    val categories: List<SpendingCategoryItem>
+)
+
 @Composable
 fun MonthlySpendingCard(modifier: Modifier = Modifier) {
-    val categories = listOf(
-        SpendingCategoryItem(
-            icon = Icons.Filled.Restaurant,
-            label = "Food",
-            amount = "₹3,500",
-            percentage = "58%",
-            chartColor = ChartFood,
-            bgBoxColor = FoodBg,
-            accentColor = FoodAccent
-        ),
-        SpendingCategoryItem(
-            icon = Icons.Filled.PhoneAndroid,
-            label = "Mobile Bills",
-            amount = "₹1,000",
-            percentage = "17%",
-            chartColor = ChartMobile,
-            bgBoxColor = MobileBg,
-            accentColor = MobileAccent
-        ),
-        SpendingCategoryItem(
-            icon = Icons.Filled.ShoppingBag,
-            label = "Shopping",
-            amount = "₹900",
-            percentage = "15%",
-            chartColor = ChartShopping,
-            bgBoxColor = ShoppingBg,
-            accentColor = ShoppingAccent
-        ),
-        SpendingCategoryItem(
-            icon = Icons.Filled.DirectionsCar,
-            label = "Transport",
-            amount = "₹600",
-            percentage = "10%",
-            chartColor = ChartTransport,
-            bgBoxColor = TransportBg,
-            accentColor = TransportAccent
+    val monthsData = remember {
+        listOf(
+            MonthlyData(
+                monthName = "Sept 2026",
+                totalSpent = "₹6,000",
+                trendPercent = "12%",
+                isTrendDown = true,
+                categories = listOf(
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.Restaurant,
+                        label = "Food",
+                        amount = "₹3,500",
+                        percentage = "58%",
+                        chartColor = ChartFood,
+                        bgBoxColor = FoodBg,
+                        accentColor = FoodAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.PhoneAndroid,
+                        label = "Mobile Bills",
+                        amount = "₹1,000",
+                        percentage = "17%",
+                        chartColor = ChartMobile,
+                        bgBoxColor = MobileBg,
+                        accentColor = MobileAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.ShoppingBag,
+                        label = "Shopping",
+                        amount = "₹900",
+                        percentage = "15%",
+                        chartColor = ChartShopping,
+                        bgBoxColor = ShoppingBg,
+                        accentColor = ShoppingAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.DirectionsCar,
+                        label = "Transport",
+                        amount = "₹600",
+                        percentage = "10%",
+                        chartColor = ChartTransport,
+                        bgBoxColor = TransportBg,
+                        accentColor = TransportAccent
+                    )
+                )
+            ),
+            MonthlyData(
+                monthName = "Aug 2026",
+                totalSpent = "₹8,450",
+                trendPercent = "18%",
+                isTrendDown = false,
+                categories = listOf(
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.Restaurant,
+                        label = "Food",
+                        amount = "₹4,200",
+                        percentage = "50%",
+                        chartColor = ChartFood,
+                        bgBoxColor = FoodBg,
+                        accentColor = FoodAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.ShoppingBag,
+                        label = "Shopping",
+                        amount = "₹2,100",
+                        percentage = "25%",
+                        chartColor = ChartShopping,
+                        bgBoxColor = ShoppingBg,
+                        accentColor = ShoppingAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.PhoneAndroid,
+                        label = "Mobile Bills",
+                        amount = "₹1,200",
+                        percentage = "14%",
+                        chartColor = ChartMobile,
+                        bgBoxColor = MobileBg,
+                        accentColor = MobileAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.DirectionsCar,
+                        label = "Transport",
+                        amount = "₹950",
+                        percentage = "11%",
+                        chartColor = ChartTransport,
+                        bgBoxColor = TransportBg,
+                        accentColor = TransportAccent
+                    )
+                )
+            ),
+            MonthlyData(
+                monthName = "Jul 2026",
+                totalSpent = "₹5,800",
+                trendPercent = "5%",
+                isTrendDown = true,
+                categories = listOf(
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.Restaurant,
+                        label = "Food",
+                        amount = "₹3,100",
+                        percentage = "53%",
+                        chartColor = ChartFood,
+                        bgBoxColor = FoodBg,
+                        accentColor = FoodAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.DirectionsCar,
+                        label = "Transport",
+                        amount = "₹1,400",
+                        percentage = "24%",
+                        chartColor = ChartTransport,
+                        bgBoxColor = TransportBg,
+                        accentColor = TransportAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.ShoppingBag,
+                        label = "Shopping",
+                        amount = "₹800",
+                        percentage = "14%",
+                        chartColor = ChartShopping,
+                        bgBoxColor = ShoppingBg,
+                        accentColor = ShoppingAccent
+                    ),
+                    SpendingCategoryItem(
+                        icon = Icons.Filled.PhoneAndroid,
+                        label = "Mobile Bills",
+                        amount = "₹500",
+                        percentage = "9%",
+                        chartColor = ChartMobile,
+                        bgBoxColor = MobileBg,
+                        accentColor = MobileAccent
+                    )
+                )
+            )
         )
-    )
+    }
 
-    val donutSegments = categories.map { category ->
+    var selectedIndex by remember { mutableStateOf(0) }
+    var showMonthDialog by remember { mutableStateOf(false) }
+    val currentMonthData = monthsData[selectedIndex]
+
+    val donutSegments = currentMonthData.categories.map { category ->
         DonutSegment(
             value = category.percentage.replace("%", "").toFloat(),
             color = category.chartColor,
             label = category.label
         )
+    }
+
+    if (showMonthDialog) {
+        Dialog(onDismissRequest = { showMonthDialog = false }) {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                shape = RoundedCornerShape(32.dp),
+                elevation = 18.dp,
+                backgroundBrush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF),
+                        Color(0xF9FAFBFC),
+                        Color(0xF0F3F6FA)
+                    )
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Select Statement Period",
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFF1F5F9))
+                                .clickable { showMonthDialog = false },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Close",
+                                tint = Color(0xFF64748B),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    monthsData.forEachIndexed { idx, mData ->
+                        val isSelected = selectedIndex == idx
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isSelected) Color(0xFFF1F5F9) else Color.Transparent)
+                                .clickable {
+                                    selectedIndex = idx
+                                    showMonthDialog = false
+                                }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = mData.monthName,
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 15.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Total Spent: ${mData.totalSpent}",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 12.5.sp,
+                                    color = Color(0xFF64748B)
+                                )
+                            }
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedIndex = idx
+                                    showMonthDialog = false
+                                },
+                                colors = RadioButtonDefaults.colors(selectedColor = Color.Black)
+                            )
+                        }
+                        if (idx < monthsData.size - 1) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
+                    }
+                }
+            }
+        }
     }
 
     GlassCard(
@@ -170,11 +392,12 @@ fun MonthlySpendingCard(modifier: Modifier = Modifier) {
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color(0xFFF1F3F5))
+                                .clickable { showMonthDialog = true }
                                 .padding(horizontal = 10.dp, vertical = 5.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Sept 2026",
+                                    text = currentMonthData.monthName,
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -193,12 +416,12 @@ fun MonthlySpendingCard(modifier: Modifier = Modifier) {
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Amount + Red Trend Indicator
+                    // Amount + Trend Indicator
                     Row(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = "₹6,000",
+                            text = currentMonthData.totalSpent,
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Bold,
@@ -211,18 +434,22 @@ fun MonthlySpendingCard(modifier: Modifier = Modifier) {
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                                    contentDescription = "Trend down",
-                                    tint = TrendRed,
+                                    imageVector = if (currentMonthData.isTrendDown) {
+                                        Icons.AutoMirrored.Filled.TrendingDown
+                                    } else {
+                                        Icons.AutoMirrored.Filled.TrendingUp
+                                    },
+                                    contentDescription = if (currentMonthData.isTrendDown) "Trend down" else "Trend up",
+                                    tint = if (currentMonthData.isTrendDown) TrendRed else ReceivedGreen,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 Text(
-                                    text = "12%",
+                                    text = currentMonthData.trendPercent,
                                     fontFamily = PlusJakartaSansFontFamily,
                                     fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TrendRed
+                                    color = if (currentMonthData.isTrendDown) TrendRed else ReceivedGreen
                                 )
                             }
                             Text(
@@ -256,7 +483,7 @@ fun MonthlySpendingCard(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    categories.forEach { category ->
+                    currentMonthData.categories.forEach { category ->
                         CategoryRowItem(category)
                     }
                 }
