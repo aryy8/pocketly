@@ -1,0 +1,36 @@
+# User requested: Ignore all screenshots and images
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.svg
+
+# Build & binary outputs
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+build/
+app/build/
+
+# Gradle caches
+.gradle/
+buildOutputCleanup/
+
+# Local SDK & environment configuration
+local.properties
+
+# IDE & OS
+.idea/
+*.iml
+.DS_Store
+captures/
+.navigation/
+*.log
+prompt*.txt
