@@ -2,8 +2,9 @@ package com.pocketly.app.ui.components
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -32,9 +33,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +61,7 @@ import com.pocketly.app.ui.theme.PlusJakartaSansFontFamily
 import com.pocketly.app.ui.theme.ReceivedGreen
 import com.pocketly.app.ui.theme.TextPrimary
 import com.pocketly.app.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -102,17 +106,21 @@ fun AppleCameraBudgetDialCard(
     val maxBudget = 100000f
     val stepAmount = 500f
 
-    var rawBudgetValue by remember { mutableFloatStateOf(initialBudget.coerceIn(minBudget, maxBudget)) }
+    val coroutineScope = rememberCoroutineScope()
+    val animatedBudget = remember { Animatable(initialBudget.coerceIn(minBudget, maxBudget)) }
+
+    // Synchronize if initialBudget changes
+    LaunchedEffect(initialBudget) {
+        if (animatedBudget.targetValue != initialBudget) {
+            animatedBudget.snapTo(initialBudget.coerceIn(minBudget, maxBudget))
+        }
+    }
+
+    // Target preset for immediate active tab highlighting
+    var targetPreset by remember { mutableFloatStateOf(initialBudget.coerceIn(minBudget, maxBudget)) }
 
     // Stepped budget snapped to nearest 500
-    val snappedBudget = ((rawBudgetValue / stepAmount).roundToInt() * stepAmount).coerceIn(minBudget, maxBudget)
-
-    // Animated budget for ultra-smooth live readout
-    val animatedBudget by animateFloatAsState(
-        targetValue = snappedBudget,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
-        label = "budget_readout"
-    )
+    val snappedBudget = ((animatedBudget.value / stepAmount).roundToInt() * stepAmount).coerceIn(minBudget, maxBudget)
 
     // Presets matching Apple Camera zoom focal lengths (0.5x, 1x, 2x, 3x, 5x)
     val presets = listOf(5000f, 10000f, 15000f, 20000f, 30000f, 50000f)
@@ -216,7 +224,7 @@ fun AppleCameraBudgetDialCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "₹" + String.format(Locale.US, "%,.0f", animatedBudget),
+                    text = "₹" + String.format(Locale.US, "%,.0f", snappedBudget),
                     fontFamily = PlusJakartaSansFontFamily,
                     fontSize = 38.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -261,20 +269,37 @@ fun AppleCameraBudgetDialCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 presets.forEach { preset ->
-                    val isSelected = (snappedBudget == preset)
+                    val isSelected = (targetPreset == preset)
                     val label = when {
                         preset >= 1000f -> "${(preset / 1000).toInt()}k"
                         else -> preset.toInt().toString()
                     }
 
+                    val tabBgColor by animateColorAsState(
+                        targetValue = if (isSelected) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                        label = "preset_tab_bg"
+                    )
+                    val tabTextColor by animateColorAsState(
+                        targetValue = if (isSelected) Color.White else Color(0xFF475569),
+                        label = "preset_tab_text"
+                    )
+
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(
-                                if (isSelected) Color(0xFF0F172A) else Color(0xFFF1F5F9)
-                            )
+                            .background(tabBgColor)
                             .clickable {
-                                rawBudgetValue = preset
+                                targetPreset = preset
+                                coroutineScope.launch {
+                                    // Smoothly spin dial to the selected preset amount
+                                    animatedBudget.animateTo(
+                                        targetValue = preset,
+                                        animationSpec = spring(
+                                            dampingRatio = 0.82f,
+                                            stiffness = 260f
+                                        )
+                                    )
+                                }
                             }
                             .padding(horizontal = 12.dp, vertical = 7.dp),
                         contentAlignment = Alignment.Center
@@ -284,7 +309,7 @@ fun AppleCameraBudgetDialCard(
                             fontFamily = PlusJakartaSansFontFamily,
                             fontSize = 12.5.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else Color(0xFF475569)
+                            color = tabTextColor
                         )
                     }
                 }
@@ -313,20 +338,38 @@ fun AppleCameraBudgetDialCard(
                         shape = RoundedCornerShape(24.dp)
                     )
                     .pointerInput(Unit) {
-                        detectHorizontalDragGestures { change, dragAmount ->
-                            change.consume()
-                            // Drag sensitivity: ~22px per 500 Rs step
-                            val sensitivity = 22f
-                            val deltaBudget = -(dragAmount / sensitivity) * stepAmount
-                            val target = (rawBudgetValue + deltaBudget).coerceIn(minBudget, maxBudget)
-                            rawBudgetValue = target
-                        }
+                        detectHorizontalDragGestures(
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                // Drag sensitivity: ~22px per 500 Rs step
+                                val sensitivity = 22f
+                                val deltaBudget = -(dragAmount / sensitivity) * stepAmount
+                                val target = (animatedBudget.value + deltaBudget).coerceIn(minBudget, maxBudget)
+                                targetPreset = ((target / stepAmount).roundToInt() * stepAmount).coerceIn(minBudget, maxBudget)
+                                coroutineScope.launch {
+                                    animatedBudget.snapTo(target)
+                                }
+                            },
+                            onDragEnd = {
+                                val finalSnap = ((animatedBudget.value / stepAmount).roundToInt() * stepAmount).coerceIn(minBudget, maxBudget)
+                                targetPreset = finalSnap
+                                coroutineScope.launch {
+                                    animatedBudget.animateTo(
+                                        targetValue = finalSnap,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    )
+                                }
+                            }
+                        )
                     },
                 contentAlignment = Alignment.TopCenter
             ) {
                 // Curved Tick Marks Canvas
                 AppleCameraCurvedDialCanvas(
-                    currentBudget = snappedBudget,
+                    currentBudget = animatedBudget.value,
                     minBudget = minBudget,
                     maxBudget = maxBudget,
                     stepAmount = stepAmount
@@ -438,8 +481,8 @@ private fun AppleCameraCurvedDialCanvas(
         // Angular spread per ₹500 step
         val anglePerStepRad = 0.042f // ~2.4 degrees per step
 
-        val currentStepIndex = (currentBudget / stepAmount).roundToInt()
-        val totalStepsVisible = 28 // 14 steps left, 14 steps right
+        val continuousStep = currentBudget / stepAmount
+        val totalStepsVisible = 24 // steps visible across the arc
 
         val minStep = (minBudget / stepAmount).roundToInt()
         val maxStep = (maxBudget / stepAmount).roundToInt()
@@ -452,12 +495,12 @@ private fun AppleCameraCurvedDialCanvas(
             isAntiAlias = true
         }
 
-        for (offset in -totalStepsVisible..totalStepsVisible) {
-            val stepIndex = currentStepIndex + offset
-            if (stepIndex < minStep || stepIndex > maxStep) continue
+        val startStep = (continuousStep - totalStepsVisible).toInt().coerceAtLeast(minStep)
+        val endStep = (continuousStep + totalStepsVisible + 1).toInt().coerceAtMost(maxStep)
 
+        for (stepIndex in startStep..endStep) {
             val stepBudget = stepIndex * stepAmount
-            val angle = offset * anglePerStepRad
+            val angle = (stepIndex - continuousStep) * anglePerStepRad
 
             // Angle from 12 o'clock (apex = 0 rad offset from -PI/2)
             val rad = -Math.PI / 2.0 + angle
@@ -478,7 +521,10 @@ private fun AppleCameraCurvedDialCanvas(
                 else -> 1.1.dp.toPx()
             }
 
-            val tickAlpha = (1f - (Math.abs(offset) / (totalStepsVisible.toFloat() + 1f))).coerceIn(0.15f, 1f)
+            val angularDistance = Math.abs(angle)
+            val maxAngle = totalStepsVisible * anglePerStepRad
+            val tickAlpha = (1f - (angularDistance / maxAngle)).coerceIn(0f, 1f)
+            if (tickAlpha <= 0.02f) continue
 
             val tickColor = when {
                 isMajor -> Color(0xFF0F172A).copy(alpha = tickAlpha)
@@ -504,7 +550,7 @@ private fun AppleCameraCurvedDialCanvas(
             )
 
             // Draw major tick text labels (e.g. 10k, 15k, 20k, 25k)
-            if (isMajor && Math.abs(offset) < totalStepsVisible - 2) {
+            if (isMajor && angularDistance < maxAngle * 0.82f) {
                 val labelR = innerR - 12.dp.toPx()
                 val labelX = (centerX + labelR * cos(rad)).toFloat()
                 val labelY = (centerY + labelR * sin(rad)).toFloat()
