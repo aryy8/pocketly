@@ -53,10 +53,11 @@ data class TransactionItem(
 @Composable
 fun TransactionHistoryCard(
     modifier: Modifier = Modifier,
+    transactionsList: List<TransactionItem>? = null,
     onSeeAllClick: () -> Unit = {},
     onTransactionClick: (TransactionItem) -> Unit = {}
 ) {
-    val transactions = listOf(
+    val defaultTransactions = listOf(
         TransactionItem(
             title = "REDBUS",
             date = "3 September",
@@ -98,6 +99,8 @@ fun TransactionHistoryCard(
             avatarType = AvatarType.Text("A")
         )
     )
+
+    val transactions = (transactionsList ?: defaultTransactions).take(5)
 
     GlassCard(
         modifier = modifier

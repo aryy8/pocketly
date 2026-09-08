@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,27 +15,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.lazy.rememberLazyListState
-import com.pocketly.app.ui.components.AvatarType
+import com.pocketly.app.data.TransactionRepository
+import com.pocketly.app.ui.components.AddTransactionDialog
 import com.pocketly.app.ui.components.TransactionDetailDialog
 import com.pocketly.app.ui.components.TransactionItem
 import com.pocketly.app.ui.components.TransactionRow
@@ -54,8 +61,36 @@ fun TransactionsScreen(
     bottomPadding: Dp = 0.dp,
     initialFilter: String = "All"
 ) {
+    val context = LocalContext.current
+    val repository = remember { TransactionRepository(context) }
+
     var selectedFilter by remember(initialFilter) { mutableStateOf(initialFilter) }
     var selectedTransaction by remember { mutableStateOf<TransactionItem?>(null) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var reloadTrigger by remember { mutableIntStateOf(0) }
+
+    val dbTransactions = remember(reloadTrigger) { repository.getAllTransactions() }
+
+    val filteredRecords = remember(dbTransactions, selectedFilter) {
+        when (selectedFilter) {
+            "Expenses" -> dbTransactions.filter { !it.isCredit }
+            "Income" -> dbTransactions.filter { it.isCredit }
+            else -> dbTransactions
+        }
+    }
+
+    val groupedByMonth = remember(filteredRecords) {
+        filteredRecords.groupBy { it.month }
+    }
+
+    if (showAddDialog) {
+        AddTransactionDialog(
+            onDismiss = { showAddDialog = false },
+            onTransactionAdded = {
+                reloadTrigger++
+            }
+        )
+    }
 
     selectedTransaction?.let { item ->
         TransactionDetailDialog(
@@ -63,131 +98,6 @@ fun TransactionsScreen(
             onDismiss = { selectedTransaction = null }
         )
     }
-
-    val allTransactionsSept = listOf(
-        TransactionItem(
-            title = "REDBUS",
-            date = "3 September",
-            amount = "₹1,103.95",
-            isCredit = false,
-            avatarBg = Color(0xFFD65B5B),
-            avatarType = AvatarType.RedBus
-        ),
-        TransactionItem(
-            title = "Swiggy",
-            date = "2 September",
-            amount = "₹480.00",
-            isCredit = false,
-            avatarBg = Color(0xFFFC8019),
-            avatarType = AvatarType.Text("S")
-        ),
-        TransactionItem(
-            title = "Uber",
-            date = "1 September",
-            amount = "₹320.00",
-            isCredit = false,
-            avatarBg = Color(0xFF1F2937),
-            avatarType = AvatarType.Text("U")
-        )
-    )
-
-    val allTransactionsAug = listOf(
-        TransactionItem(
-            title = "Shashank Rastogi",
-            date = "29 August",
-            amount = "+ ₹2,100",
-            isCredit = true,
-            avatarBg = Color(0xFF7C929E),
-            avatarType = AvatarType.Text("S")
-        ),
-        TransactionItem(
-            title = "Zomato",
-            date = "27 August",
-            amount = "₹710.06",
-            isCredit = false,
-            avatarBg = Color(0xFFCB202D),
-            avatarType = AvatarType.Zomato
-        ),
-        TransactionItem(
-            title = "Netflix",
-            date = "24 August",
-            amount = "₹649.00",
-            isCredit = false,
-            avatarBg = Color(0xFFE50914),
-            avatarType = AvatarType.Text("N")
-        ),
-        TransactionItem(
-            title = "Myntra",
-            date = "20 August",
-            amount = "₹310",
-            isCredit = false,
-            avatarBg = Color(0xFF453D3B),
-            avatarType = AvatarType.Text("M")
-        ),
-        TransactionItem(
-            title = "ARYAN RASTOGI",
-            date = "18 August",
-            amount = "₹900",
-            isCredit = false,
-            avatarBg = Color(0xFF3B8E88),
-            avatarType = AvatarType.Text("A")
-        ),
-        TransactionItem(
-            title = "Starbucks",
-            date = "15 August",
-            amount = "₹380.00",
-            isCredit = false,
-            avatarBg = Color(0xFF006241),
-            avatarType = AvatarType.Text("S")
-        ),
-        TransactionItem(
-            title = "Salary Credited",
-            date = "1 August",
-            amount = "+ ₹75,000",
-            isCredit = true,
-            avatarBg = Color(0xFF16A34A),
-            avatarType = AvatarType.Text("₹")
-        )
-    )
-
-    val allTransactionsJuly = listOf(
-        TransactionItem(
-            title = "Amazon India",
-            date = "28 July",
-            amount = "₹1,450.00",
-            isCredit = false,
-            avatarBg = Color(0xFFFF9900),
-            avatarType = AvatarType.Text("A")
-        ),
-        TransactionItem(
-            title = "Airtel Postpaid",
-            date = "22 July",
-            amount = "₹999.00",
-            isCredit = false,
-            avatarBg = Color(0xFFE40000),
-            avatarType = AvatarType.Text("A")
-        ),
-        TransactionItem(
-            title = "BookMyShow",
-            date = "14 July",
-            amount = "₹560.00",
-            isCredit = false,
-            avatarBg = Color(0xFF7C3AED),
-            avatarType = AvatarType.Text("B")
-        )
-    )
-
-    fun filterList(list: List<TransactionItem>): List<TransactionItem> {
-        return when (selectedFilter) {
-            "Expenses" -> list.filter { !it.isCredit }
-            "Income" -> list.filter { it.isCredit }
-            else -> list
-        }
-    }
-
-    val septFiltered = filterList(allTransactionsSept)
-    val augFiltered = filterList(allTransactionsAug)
-    val julyFiltered = filterList(allTransactionsJuly)
 
     val listState = rememberLazyListState()
     val flingBehavior = rememberFluidFlingBehavior()
@@ -211,33 +121,75 @@ fun TransactionsScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.8f))
-                                .clickable { onBackClick() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color.Black,
-                                modifier = Modifier.size(20.dp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.8f))
+                                    .clickable { onBackClick() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = "Transactions",
+                                fontFamily = InriaSerifFontFamily,
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Text(
-                            text = "Transactions",
-                            fontFamily = InriaSerifFontFamily,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
+                        // Add transaction action button
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .shadow(6.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color(0xF8FFFFFF),
+                                            Color(0xEEF8FAFC),
+                                            Color(0xD9E2E8F0)
+                                        )
+                                    )
+                                )
+                                .border(
+                                    border = BorderStroke(
+                                        1.2.dp,
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.White,
+                                                Color.White.copy(alpha = 0.6f),
+                                                Color(0x20000000)
+                                            )
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                )
+                                .clickable { showAddDialog = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Transaction",
+                                tint = Color(0xFF0F172A),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -272,80 +224,46 @@ fun TransactionsScreen(
                 }
             }
 
-            // September Section
-            if (septFiltered.isNotEmpty()) {
+            // Dynamically render each month section from SQLite
+            if (groupedByMonth.isEmpty()) {
                 item {
-                    SectionHeader(title = "September 2026")
-                    GlassCard(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        elevation = 10.dp
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            septFiltered.forEach { item ->
-                                TransactionRow(
-                                    item = item,
-                                    onClick = { selectedTransaction = item }
-                                )
-                            }
-                        }
+                        Text(
+                            text = "No transactions found for $selectedFilter",
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 14.sp,
+                            color = TextSecondary
+                        )
                     }
                 }
-            }
-
-            // August Section
-            if (augFiltered.isNotEmpty()) {
-                item {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    SectionHeader(title = "August 2026")
-                    GlassCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        elevation = 10.dp
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+            } else {
+                groupedByMonth.forEach { (month, records) ->
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SectionHeader(title = month)
+                        GlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = 10.dp
                         ) {
-                            augFiltered.forEach { item ->
-                                TransactionRow(
-                                    item = item,
-                                    onClick = { selectedTransaction = item }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // July Section
-            if (julyFiltered.isNotEmpty()) {
-                item {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    SectionHeader(title = "July 2026")
-                    GlassCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        elevation = 10.dp
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            julyFiltered.forEach { item ->
-                                TransactionRow(
-                                    item = item,
-                                    onClick = { selectedTransaction = item }
-                                )
+                            Column(
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                records.forEach { record ->
+                                    val item = record.toTransactionItem()
+                                    TransactionRow(
+                                        item = item,
+                                        onClick = { selectedTransaction = item }
+                                    )
+                                }
                             }
                         }
                     }

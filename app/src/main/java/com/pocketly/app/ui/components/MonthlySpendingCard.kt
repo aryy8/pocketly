@@ -83,151 +83,46 @@ data class MonthlyData(
 )
 
 @Composable
-fun MonthlySpendingCard(modifier: Modifier = Modifier) {
-    val monthsData = remember {
-        listOf(
-            MonthlyData(
-                monthName = "Sept 2026",
-                totalSpent = "₹6,000",
-                trendPercent = "12%",
-                isTrendDown = true,
-                categories = listOf(
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.Restaurant,
-                        label = "Food",
-                        amount = "₹3,500",
-                        percentage = "58%",
-                        chartColor = ChartFood,
-                        bgBoxColor = FoodBg,
-                        accentColor = FoodAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.PhoneAndroid,
-                        label = "Mobile Bills",
-                        amount = "₹1,000",
-                        percentage = "17%",
-                        chartColor = ChartMobile,
-                        bgBoxColor = MobileBg,
-                        accentColor = MobileAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.ShoppingBag,
-                        label = "Shopping",
-                        amount = "₹900",
-                        percentage = "15%",
-                        chartColor = ChartShopping,
-                        bgBoxColor = ShoppingBg,
-                        accentColor = ShoppingAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.DirectionsCar,
-                        label = "Transport",
-                        amount = "₹600",
-                        percentage = "10%",
-                        chartColor = ChartTransport,
-                        bgBoxColor = TransportBg,
-                        accentColor = TransportAccent
-                    )
-                )
-            ),
-            MonthlyData(
-                monthName = "Aug 2026",
-                totalSpent = "₹8,450",
-                trendPercent = "18%",
-                isTrendDown = false,
-                categories = listOf(
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.Restaurant,
-                        label = "Food",
-                        amount = "₹4,200",
-                        percentage = "50%",
-                        chartColor = ChartFood,
-                        bgBoxColor = FoodBg,
-                        accentColor = FoodAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.ShoppingBag,
-                        label = "Shopping",
-                        amount = "₹2,100",
-                        percentage = "25%",
-                        chartColor = ChartShopping,
-                        bgBoxColor = ShoppingBg,
-                        accentColor = ShoppingAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.PhoneAndroid,
-                        label = "Mobile Bills",
-                        amount = "₹1,200",
-                        percentage = "14%",
-                        chartColor = ChartMobile,
-                        bgBoxColor = MobileBg,
-                        accentColor = MobileAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.DirectionsCar,
-                        label = "Transport",
-                        amount = "₹950",
-                        percentage = "11%",
-                        chartColor = ChartTransport,
-                        bgBoxColor = TransportBg,
-                        accentColor = TransportAccent
-                    )
-                )
-            ),
-            MonthlyData(
-                monthName = "Jul 2026",
-                totalSpent = "₹5,800",
-                trendPercent = "5%",
-                isTrendDown = true,
-                categories = listOf(
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.Restaurant,
-                        label = "Food",
-                        amount = "₹3,100",
-                        percentage = "53%",
-                        chartColor = ChartFood,
-                        bgBoxColor = FoodBg,
-                        accentColor = FoodAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.DirectionsCar,
-                        label = "Transport",
-                        amount = "₹1,400",
-                        percentage = "24%",
-                        chartColor = ChartTransport,
-                        bgBoxColor = TransportBg,
-                        accentColor = TransportAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.ShoppingBag,
-                        label = "Shopping",
-                        amount = "₹800",
-                        percentage = "14%",
-                        chartColor = ChartShopping,
-                        bgBoxColor = ShoppingBg,
-                        accentColor = ShoppingAccent
-                    ),
-                    SpendingCategoryItem(
-                        icon = Icons.Filled.PhoneAndroid,
-                        label = "Mobile Bills",
-                        amount = "₹500",
-                        percentage = "9%",
-                        chartColor = ChartMobile,
-                        bgBoxColor = MobileBg,
-                        accentColor = MobileAccent
-                    )
-                )
-            )
-        )
-    }
+fun MonthlySpendingCard(
+    modifier: Modifier = Modifier,
+    reloadTrigger: Int = 0
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val repository = remember { com.pocketly.app.data.TransactionRepository(context) }
 
+    val monthNames = remember { listOf("Sept 2026", "Aug 2026", "Jul 2026") }
     var selectedIndex by remember { mutableStateOf(0) }
     var showMonthDialog by remember { mutableStateOf(false) }
-    val currentMonthData = monthsData[selectedIndex]
+
+    val monthsData = remember(reloadTrigger) {
+        monthNames.map { mName ->
+            val calc = repository.getMonthlySpendingData(mName)
+            MonthlyData(
+                monthName = mName,
+                totalSpent = "₹" + String.format(java.util.Locale.US, "%,.0f", calc.totalSpent),
+                trendPercent = calc.trendPercent,
+                isTrendDown = calc.isTrendDown,
+                categories = calc.categories.map { cat ->
+                    SpendingCategoryItem(
+                        icon = cat.icon,
+                        label = cat.label,
+                        amount = "₹" + String.format(java.util.Locale.US, "%,.0f", cat.amount),
+                        percentage = "${cat.percentage}%",
+                        chartColor = cat.chartColor,
+                        bgBoxColor = cat.bgBoxColor,
+                        accentColor = cat.accentColor
+                    )
+                }
+            )
+        }
+    }
+
+    val currentMonthData = monthsData.getOrElse(selectedIndex) { monthsData[0] }
 
     val donutSegments = currentMonthData.categories.map { category ->
+        val rawPct = category.percentage.replace("%", "").toFloatOrNull() ?: 0f
         DonutSegment(
-            value = category.percentage.replace("%", "").toFloat(),
+            value = if (rawPct > 0f) rawPct else 1f,
             color = category.chartColor,
             label = category.label
         )
