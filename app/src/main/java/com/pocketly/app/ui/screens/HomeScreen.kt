@@ -49,9 +49,12 @@ import com.pocketly.app.ui.theme.trackpadSmoothScroll
 import java.util.Locale
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onSignOut: () -> Unit = {}
+) {
     val context = LocalContext.current
     val repository = remember { TransactionRepository(context) }
+    val userPreferences = remember { com.pocketly.app.data.UserPreferences(context) }
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var transactionsInitialFilter by remember { mutableStateOf("All") }
@@ -176,7 +179,7 @@ fun HomeScreen() {
                             item {
                                 Spacer(modifier = Modifier.height(10.dp))
                                 GreetingSection(
-                                    name = "Aryan",
+                                    name = userPreferences.userName,
                                     date = "4th, Sept 2026"
                                 )
                             }
@@ -241,7 +244,8 @@ fun HomeScreen() {
                     reloadTrigger = reloadTrigger
                 )
                 4 -> ProfileScreen(
-                    bottomPadding = innerPadding.calculateBottomPadding()
+                    bottomPadding = innerPadding.calculateBottomPadding(),
+                    onSignOut = onSignOut
                 )
             }
         }
