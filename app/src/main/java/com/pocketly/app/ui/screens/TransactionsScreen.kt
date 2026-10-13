@@ -59,7 +59,8 @@ import com.pocketly.app.ui.theme.trackpadSmoothScroll
 fun TransactionsScreen(
     onBackClick: () -> Unit = {},
     bottomPadding: Dp = 0.dp,
-    initialFilter: String = "All"
+    initialFilter: String = "All",
+    reloadTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val repository = remember { TransactionRepository(context) }
@@ -67,9 +68,31 @@ fun TransactionsScreen(
     var selectedFilter by remember(initialFilter) { mutableStateOf(initialFilter) }
     var selectedTransaction by remember { mutableStateOf<TransactionItem?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
-    var reloadTrigger by remember { mutableIntStateOf(0) }
+    var localReloadTrigger by remember { mutableIntStateOf(0) }
 
-    val dbTransactions = remember(reloadTrigger) { repository.getAllTransactions() }
+    val combinedTrigger = reloadTrigger + localReloadTrigger
+    val dbTransactions = remember(combinedTrigger) { repository.getAllTransactions() }
+
+    // Auto-refresh when BankNotificationListenerService captures a transaction
+    androidx.compose.runtime.DisposableEffect(context) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: android.content.Context?, intent: android.content.Intent?) {
+                localReloadTrigger++
+            }
+        }
+        val filter = android.content.IntentFilter(com.pocketly.app.service.BankNotificationListenerService.ACTION_TRANSACTION_CAPTURED)
+        androidx.core.content.ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose {
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (_: Exception) {}
+        }
+    }
 
     val filteredRecords = remember(dbTransactions, selectedFilter) {
         when (selectedFilter) {
@@ -87,7 +110,7 @@ fun TransactionsScreen(
         AddTransactionDialog(
             onDismiss = { showAddDialog = false },
             onTransactionAdded = {
-                reloadTrigger++
+                localReloadTrigger++
             }
         )
     }

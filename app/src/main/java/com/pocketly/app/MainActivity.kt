@@ -37,6 +37,12 @@ class MainActivity : ComponentActivity() {
                 android.graphics.Color.TRANSPARENT
             )
         )
+
+        val appPrefs = UserPreferences(this)
+        if (appPrefs.autoSimulateAlerts) {
+            com.pocketly.app.service.AutoNotificationScheduler.start(this)
+        }
+
         setContent {
             PocketlyTheme {
                 val context = LocalContext.current

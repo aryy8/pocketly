@@ -74,6 +74,27 @@ fun HomeScreen(
         dbTransactions.map { it.toTransactionItem() }
     }
 
+    // Auto-refresh when BankNotificationListenerService captures a transaction
+    androidx.compose.runtime.DisposableEffect(context) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: android.content.Context?, intent: android.content.Intent?) {
+                reloadTrigger++
+            }
+        }
+        val filter = android.content.IntentFilter(com.pocketly.app.service.BankNotificationListenerService.ACTION_TRANSACTION_CAPTURED)
+        androidx.core.content.ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose {
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (_: Exception) {}
+        }
+    }
+
     if (showAddTransactionDialog) {
         AddTransactionDialog(
             onDismiss = { showAddTransactionDialog = false },
@@ -234,7 +255,8 @@ fun HomeScreen(
                 1 -> TransactionsScreen(
                     onBackClick = { selectedTab = 0 },
                     bottomPadding = innerPadding.calculateBottomPadding(),
-                    initialFilter = transactionsInitialFilter
+                    initialFilter = transactionsInitialFilter,
+                    reloadTrigger = reloadTrigger
                 )
                 2 -> SearchScreen(
                     bottomPadding = innerPadding.calculateBottomPadding()

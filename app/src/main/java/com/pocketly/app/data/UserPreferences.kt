@@ -15,7 +15,12 @@ class UserPreferences(context: Context) {
         private const val KEY_ACCOUNT_TYPE = "key_account_type"
         private const val KEY_MONTHLY_BUDGET = "key_monthly_budget"
         private const val KEY_BIOMETRIC_LOCK = "key_biometric_lock"
+        private const val KEY_AUTO_SIMULATE_ALERTS = "key_auto_simulate_alerts"
     }
+
+    var autoSimulateAlerts: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_SIMULATE_ALERTS, false)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_SIMULATE_ALERTS, value).apply()
 
     var userName: String
         get() = prefs.getString(KEY_USER_NAME, "Aryan Rastogi") ?: "Aryan Rastogi"

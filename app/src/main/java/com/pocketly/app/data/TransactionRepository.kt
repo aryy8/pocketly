@@ -96,16 +96,17 @@ class TransactionRepository(context: Context) {
         category: String,
         isRecurring: Boolean = false,
         accountName: String = "Main Account",
-        paymentMode: String = "UPI"
+        paymentMode: String = "UPI",
+        date: String? = null,
+        month: String? = null
     ): Long {
         val db = dbHelper.writableDatabase
 
-        val dayFormat = SimpleDateFormat("d MMMM", Locale.ENGLISH)
-        val monthFormat = SimpleDateFormat("MMMM yyyy", Locale.ENGLISH)
-        val now = Date()
-
-        val dateStr = dayFormat.format(now)
-        val monthStr = monthFormat.format(now)
+        // In this app environment, active simulation and mock data are centered around September 2026.
+        // Defaulting to "4 September" and "September 2026" ensures every new notification/transaction
+        // instantly updates the active month's balance, spending cards, and category charts.
+        val dateStr = date ?: "4 September"
+        val monthStr = month ?: "September 2026"
 
         val values = ContentValues().apply {
             put(PocketlyDbHelper.COLUMN_TITLE, title.trim())

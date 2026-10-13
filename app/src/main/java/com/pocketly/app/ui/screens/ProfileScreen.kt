@@ -1,5 +1,6 @@
 package com.pocketly.app.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +31,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -70,6 +73,11 @@ fun ProfileScreen(
 
     var copyFeedback by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var showSimulateDialog by remember { mutableStateOf(false) }
+
+    if (showSimulateDialog) {
+        SimulateBankAlertDialog(onDismiss = { showSimulateDialog = false })
+    }
 
     if (showSignOutDialog) {
         Dialog(onDismissRequest = { showSignOutDialog = false }) {
@@ -359,6 +367,203 @@ fun ProfileScreen(
                 }
             }
 
+            // Smart Bank Sync (Presentation Demo) Card
+            item {
+                val isListenerEnabled = remember(showSimulateDialog) {
+                    val pkgName = context.packageName
+                    val flat = android.provider.Settings.Secure.getString(
+                        context.contentResolver,
+                        "enabled_notification_listeners"
+                    )
+                    flat != null && flat.contains(pkgName)
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(26.dp),
+                    elevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Smart Bank Notification Sync",
+                                fontFamily = PlusJakartaSansFontFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isListenerEnabled) Color(0xFFDCFCE7) else Color(0xFFFEF3C7))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = if (isListenerEnabled) "Active" else "Setup Needed",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isListenerEnabled) ReceivedGreen else Color(0xFFD97706)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Listens passively on-device for incoming HDFC, SBI, and UPI transaction notifications and logs them automatically.",
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 12.5.sp,
+                            color = TextSecondary,
+                            lineHeight = 17.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (!isListenerEnabled) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val intent = android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Text(
+                                        text = "Enable Access",
+                                        fontFamily = PlusJakartaSansFontFamily,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = { showSimulateDialog = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                            ) {
+                                Text(
+                                    text = "Simulate Bank Alert",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 14.dp),
+                            color = Color(0xFFE2E8F0)
+                        )
+
+                        val isAutoRunning by com.pocketly.app.service.AutoNotificationScheduler.isRunning
+                        val nextEpoch by com.pocketly.app.service.AutoNotificationScheduler.nextTriggerEpoch
+                        var remainingSeconds by remember { mutableLongStateOf(0L) }
+
+                        LaunchedEffect(isAutoRunning, nextEpoch) {
+                            while (isAutoRunning) {
+                                val diff = (nextEpoch - System.currentTimeMillis()) / 1000L
+                                remainingSeconds = if (diff > 0) diff else 0L
+                                kotlinx.coroutines.delay(1000L)
+                            }
+                        }
+
+                        val formattedRemaining = remember(remainingSeconds) {
+                            val m = remainingSeconds / 60
+                            val s = remainingSeconds % 60
+                            "${m}m ${s}s"
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Auto-Simulate (Every 2 Mins)",
+                                        fontFamily = PlusJakartaSansFontFamily,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextPrimary
+                                    )
+                                    if (isAutoRunning) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(ReceivedGreen)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (isAutoRunning) "Active: next alert in ~$formattedRemaining" else "Delivers real bank alerts automatically every 2 mins",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 12.sp,
+                                    color = if (isAutoRunning) ReceivedGreen else TextSecondary,
+                                    lineHeight = 16.sp
+                                )
+                            }
+
+                            Switch(
+                                checked = isAutoRunning,
+                                onCheckedChange = { checked ->
+                                    userPreferences.autoSimulateAlerts = checked
+                                    if (checked) {
+                                        com.pocketly.app.service.AutoNotificationScheduler.start(context)
+                                    } else {
+                                        com.pocketly.app.service.AutoNotificationScheduler.stop(context)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFF1E3A8A)
+                                )
+                            )
+                        }
+
+                        if (isAutoRunning) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Text(
+                                    text = "⚡ Skip wait & trigger now",
+                                    fontFamily = PlusJakartaSansFontFamily,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF2563EB),
+                                    modifier = Modifier
+                                        .clickable {
+                                            com.pocketly.app.service.AutoNotificationScheduler.triggerNow(context)
+                                        }
+                                        .padding(vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Sign out Card
             item {
                 Spacer(modifier = Modifier.height(14.dp))
@@ -397,3 +602,204 @@ fun ProfileScreen(
         }
     }
 }
+
+@Composable
+private fun SimulateBankAlertDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val repository = remember { com.pocketly.app.data.TransactionRepository(context) }
+    var selectedPresetText by remember {
+        mutableStateOf("HDFC Bank: Rs 480.00 debited from A/C XX2673 on 13-Oct for Swiggy.")
+    }
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var isSuccess by remember { mutableStateOf(true) }
+
+    val presets = listOf(
+        "Swiggy ₹480 (Food)" to "HDFC Bank: Rs 480.00 debited from A/C XX2673 on 13-Oct for Swiggy.",
+        "Zomato ₹720 (Food)" to "SBI: Rs 720.00 debited from A/C XX8958 at Zomato.",
+        "Uber ₹250 (Transport)" to "HDFC Bank: Rs 250.00 debited from A/C XX2673 at Uber.",
+        "Airtel ₹1,000 (Bills)" to "SBI: Rs 1,000.00 debited from A/C XX8958 for Airtel Postpaid.",
+        "Salary ₹15,000 (Income)" to "Salary Credited: Rs 15,000.00 deposited into A/C XX2673."
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            shape = RoundedCornerShape(28.dp),
+            elevation = 16.dp,
+            backgroundBrush = Brush.verticalGradient(
+                colors = listOf(Color.White, Color(0xFFF8FAFC))
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(22.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Simulate Bank Alert",
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .clickable { onDismiss() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("✕", fontSize = 14.sp, color = Color(0xFF64748B))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Pick a preset to test on-device regex parsing and instant SQLite ingestion.",
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 12.sp,
+                    color = TextSecondary,
+                    lineHeight = 16.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "Select Sample Alert:",
+                    fontFamily = PlusJakartaSansFontFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                presets.forEach { (label, smsText) ->
+                    val isSelected = selectedPresetText == smsText
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) Color(0xFFEFF6FF) else Color(0xFFF8FAFC))
+                            .clickable {
+                                selectedPresetText = smsText
+                                feedbackMessage = null
+                            }
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = label,
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color(0xFF1D4ED8) else Color(0xFF334155),
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isSelected) {
+                            Text("●", fontSize = 10.sp, color = Color(0xFF1D4ED8))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                feedbackMessage?.let { msg ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSuccess) Color(0xFFDCFCE7) else Color(0xFFFEE2E2))
+                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = msg,
+                            fontFamily = PlusJakartaSansFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isSuccess) Color(0xFF166534) else Color(0xFF991B1B)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // 1. Post Real Android Notification (Triggers OS NotificationListenerService)
+                Button(
+                    onClick = {
+                        val posted = com.pocketly.app.service.SystemNotificationSimulator.postNotification(
+                            context = context,
+                            title = "HDFC Bank Alert",
+                            message = selectedPresetText
+                        )
+                        if (posted) {
+                            isSuccess = true
+                            feedbackMessage = "Real notification pushed! Android OS is routing it through BankNotificationListenerService..."
+                        } else {
+                            isSuccess = false
+                            feedbackMessage = "Failed to post notification. Check app permissions."
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A))
+                ) {
+                    Text(
+                        text = "🔔 Push Real Android Notification",
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 2. Direct Ingest fallback
+                OutlinedButton(
+                    onClick = {
+                        val parsed = com.pocketly.app.service.BankNotificationParser.parse("Bank Alert", selectedPresetText)
+                        if (parsed != null) {
+                            repository.insertTransaction(
+                                title = parsed.title,
+                                amount = parsed.amount,
+                                isCredit = parsed.isCredit,
+                                category = parsed.category,
+                                isRecurring = false,
+                                accountName = parsed.accountName,
+                                paymentMode = parsed.paymentMode
+                            )
+                            val intent = android.content.Intent(com.pocketly.app.service.BankNotificationListenerService.ACTION_TRANSACTION_CAPTURED).apply {
+                                setPackage(context.packageName)
+                            }
+                            context.sendBroadcast(intent)
+                            isSuccess = true
+                            feedbackMessage = "Captured: ${parsed.title} -> ₹${parsed.amount.toInt()} (${parsed.category}) saved to SQLite!"
+                        } else {
+                            isSuccess = false
+                            feedbackMessage = "Could not detect bank amount or transaction keyword."
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                ) {
+                    Text(
+                        text = "⚡ Direct Ingest & Parse",
+                        fontFamily = PlusJakartaSansFontFamily,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF334155)
+                    )
+                }
+            }
+        }
+    }
+}
+
